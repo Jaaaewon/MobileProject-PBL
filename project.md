@@ -10,6 +10,8 @@
 
 **중간지점**을 표시하여 주며 그 **주변 가게**에 대한 정보를 제공 해 주는 어플을 구상했습니다.
 
+# 어플 기능
+
 **기능 1.**
 - 친구와의 중간 지점을 지도 상에 표시
 
@@ -19,9 +21,18 @@
 **기능 3.**
 - 선택된 장소까지의 길찾기 서비스
 
+# 예상 결과
 
+**예상 결과는 **
 
+# 필요 기술
 
+**Google Maps - Maps SDK for Android**
 
+  <https://developers.google.com/maps/documentation/android-sdk/intro>
 
-**ㄱㄴㄷㄹ**
+**Google Maps - Places API**
+
+<https://developers.google.com/places/web-service/intro>
+
+**추후 추가 예정 *
