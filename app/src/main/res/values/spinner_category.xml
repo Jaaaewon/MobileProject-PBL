@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="spinner_category">
+        <item >all</item>
+        <item >top</item>
+        <item >bottom</item>
+        <item >cap</item>
+    </string-array>
+</resources>
