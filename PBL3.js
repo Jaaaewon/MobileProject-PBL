@@ -39,19 +39,16 @@ const productList = [
     {
         "name" :"모자",
         "price" :"8,000",
-        "itemDescription" : "this is cup of cream tea",
         "imagePath" : "https://image.msscdn.net/images/goods_img/20160521/357178/357178_7_500.jpg"
     },
     {
         "name" :"상의",
         "price" :"22,000",
-        "itemDescription" : "this is blue jean",
         "imagePath" : "https://assets.styleship.com/fila/data/productimages/a/3/FK2POB4401X_DGR.jpg"
     },
     {
         "name" :"바지",
         "price" :"30,000",
-        "itemDescription" : "this is long padding",
         "imagePath" : "http://m.modmartin.co.kr/web/product/big/201504/171_shop1_726390.jpg"
     },
 ];
