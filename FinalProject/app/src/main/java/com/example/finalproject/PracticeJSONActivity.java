@@ -14,9 +14,13 @@ import android.os.Bundle;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -39,8 +43,12 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import org.json.JSONObject;
 
@@ -52,20 +60,27 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
-public class PracticeJSONActivity extends FragmentActivity implements OnMapReadyCallback, ActivityCompat.OnRequestPermissionsResultCallback{
+import noman.googleplaces.NRPlaces;
+import noman.googleplaces.Place;
+import noman.googleplaces.PlaceType;
+import noman.googleplaces.PlacesException;
+import noman.googleplaces.PlacesListener;
+
+public class PracticeJSONActivity extends FragmentActivity
+        implements OnMapReadyCallback, ActivityCompat.OnRequestPermissionsResultCallback, PlacesListener {
 
     private GoogleMap mMap;
-    private LatLng mOrigin;
+    private LatLng mOrigin= new LatLng(37.56, 126.97);
     private LatLng mDestination;
+    private LatLng mFriend;
     private Polyline mPolyline;
     ArrayList<LatLng> mMarkerPoints;
 
     // 핑찍기 위해 추가 ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-
-    private FloatingActionButton fab = null;
 
     private Marker currentMarker = null;
 
@@ -90,18 +105,79 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
 
     private View mLayout;  // Snackbar 사용하기 위해서는 View가 필요합니다.
     private TextView mTextView;
+    private TextView mTTextView;
 
     private String duration;
+    private String distance;
+    private LatLng middle;
     // (참고로 Toast에서는 Context가 필요했습니다.)
 
     // 여기까지 ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
+    private FirebaseDatabase mDatabase;
+    private DatabaseReference mFriendRef;
+    private int isFirst=1;
+    private String exName;
+
+    // Places
+    List<Marker> previous_marker = null;
+    private RadioButton radioButton,radioButton2;
+    private RadioGroup radioGroup;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_maps);
+        previous_marker = new ArrayList<Marker>();
+
+        radioButton = (RadioButton) findViewById(R.id.radioButton);
+        radioButton2 = (RadioButton) findViewById(R.id.radioButton2);
+        radioGroup = (RadioGroup) findViewById(R.id.radioGroup);
+
+        //radioButton.isChecked()   radioButton.isChecked()
+
+        Button button = (Button)findViewById(R.id.place);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showPlaceInformation(currentPosition);
+            }
+        });
+        mDatabase = FirebaseDatabase.getInstance();
+        mFriendRef = mDatabase.getReference("friend");
+
+        Intent intent = getIntent();
+
+        isFirst = intent.getExtras().getInt("isFirst");
+        exName = intent.getExtras().getString("exName");
+        Log.d("exName~~~", Integer.toString(isFirst));
+
+        //★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+        mFriendRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(isFirst==1) {
+                    double lat = Double.parseDouble(dataSnapshot.child(exName).child("second").child("lat").getValue().toString());
+                    double lng = Double.parseDouble(dataSnapshot.child(exName).child("second").child("lng").getValue().toString());
+                    mFriend = new LatLng(lat, lng);
+                    mDestination = mFriend;
+                    Log.d("@@@@@", Double.toString(lat));
+                }
+                else{
+                    double lat = Double.parseDouble(dataSnapshot.child(exName).child("first").child("lat").getValue().toString());
+                    double lng = Double.parseDouble(dataSnapshot.child(exName).child("first").child("lng").getValue().toString());
+                    mFriend = new LatLng(lat, lng);
+
+                    mDestination= mFriend;
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -114,11 +190,14 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
         // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
         mLayout = findViewById(R.id.layout_main);
         mTextView = findViewById(R.id.txt_time);
+        mTTextView = findViewById(R.id.txt_distance);
         // 수정했음 위치 갱신 삭제 ★★★★★★★★★★★★★★★★★★★★★★★★★★★
         // .setInterval(UPDATE_INTERVAL_MS)
         // .setFastestInterval(FASTEST_UPDATE_INTERVAL_MS)
         locationRequest = new LocationRequest()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(UPDATE_INTERVAL_MS)
+                .setFastestInterval(FASTEST_UPDATE_INTERVAL_MS);
 
         LocationSettingsRequest.Builder builder =
                 new LocationSettingsRequest.Builder();
@@ -183,8 +262,6 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
 
         }
 
-
-
         mMap.getUiSettings().setMyLocationButtonEnabled(true);
         mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
 
@@ -202,16 +279,21 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
                 }
 
                 // Adding new item to the ArrayList
-                mMarkerPoints.add(point);
+                //mMarkerPoints.add(point);
+                mMarkerPoints.add(mFriend);
 
                 // Creating MarkerOptions
                 MarkerOptions options = new MarkerOptions();
 
                 // Setting the position of the marker
-                options.position(point);
-                options.title(getCurrentAddress(point));
-                options.snippet("위도: "+String.valueOf(location.getLatitude())
-                        + " 경도: "+String.valueOf(location.getLongitude()));
+                //options.position(point);
+                //options.title(getCurrentAddress(point));
+                options.position(mFriend);
+                options.title(getCurrentAddress(mFriend));
+                options.snippet("위도: "+String.valueOf(mFriend.latitude)
+                        + " 경도: "+String.valueOf(mFriend.longitude));
+                //options.snippet("위도: "+String.valueOf(location.getLatitude())
+                //       + " 경도: "+String.valueOf(location.getLongitude()));
                 /**
                  * For the start location, the color of marker is GREEN and
                  * for the end location, the color of marker is RED.
@@ -221,10 +303,20 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
                 }else if(mMarkerPoints.size()==2){
                     options.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
                 }
+                MarkerOptions optionss = new MarkerOptions();
 
+                // Setting the position of the marker
+                //options.position(point);
+                //options.title(getCurrentAddress(point));
+                middle = new LatLng((mFriend.latitude+mCurrentLocatiion.getLatitude())/2,(mFriend.longitude+mCurrentLocatiion.getLongitude())/2);
+                optionss.position(middle);
+                optionss.title(getCurrentAddress(middle));
+                optionss.snippet("위도: "+String.valueOf(middle.latitude)
+                        + " 경도: "+String.valueOf(middle.longitude));
                 // Add new marker to the Google Map Android API V2
+                optionss.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
                 mMap.addMarker(options);
-
+                mMap.addMarker(optionss);
                 // Checks, whether start and end locations are captured
                 // 수정했음 ★★★★★★★★★★★★★★★★★★★★★★★★ >=2
                 if(mMarkerPoints.size() >= 1){
@@ -232,12 +324,15 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
                     //mDestination = mMarkerPoints.get(1);
                     mOrigin = currentPosition;
                     mDestination = mMarkerPoints.get(0);
+                    mDestination = middle;
                     drawRoute();
                     // 폴리라인 그릴 수 있으니 duration 정보 얻은 후인것임.
                     mTextView.setText(duration);
+                    mTTextView.setText(distance);
                 }
             }
         });
+
     }
 
     public void setDefaultLocation() {
@@ -282,11 +377,18 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
 
                 Log.d(TAG, "onLocationResult : " + markerSnippet);
 
-
                 //현재 위치에 마커 생성하고 이동
                 setCurrentLocation(location, markerTitle, markerSnippet);
 
                 mCurrentLocatiion = location;
+                if(isFirst==1) {
+                    mFriendRef.child(exName).child("first").child("lat").setValue(mCurrentLocatiion.getLatitude());
+                    mFriendRef.child(exName).child("first").child("lng").setValue(mCurrentLocatiion.getLongitude());
+                }
+                else {
+                    mFriendRef.child(exName).child("second").child("lat").setValue(mCurrentLocatiion.getLatitude());
+                    mFriendRef.child(exName).child("second").child("lng").setValue(mCurrentLocatiion.getLongitude());
+                }
             }
         }
 
@@ -343,8 +445,8 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
 
         currentMarker = mMap.addMarker(markerOptions);
 
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentLatLng);
-        mMap.moveCamera(cameraUpdate);
+        //CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentLatLng);
+        //mMap.moveCamera(cameraUpdate);
 
     }
 
@@ -479,6 +581,7 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
                 // Starts parsing data
                 routes = parser.parse(jObject);
                 duration = parser.getDuration();
+                distance = parser.getDistance();
             }catch(Exception e){
                 e.printStackTrace();
             }
@@ -632,4 +735,139 @@ public class PracticeJSONActivity extends FragmentActivity implements OnMapReady
         }
     }
 
+    //// Places 구현
+    public void showPlaceInformation(LatLng location)
+    {
+        mMap.clear();//지도 클리어
+        if(mMarkerPoints.size()>0){
+            mMarkerPoints.clear();
+            mMap.clear();
+            mFusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
+        }
+
+        // Adding new item to the ArrayList
+        //mMarkerPoints.add(point);
+        mMarkerPoints.add(mFriend);
+
+        // Creating MarkerOptions
+        MarkerOptions options = new MarkerOptions();
+
+        // Setting the position of the marker
+        //options.position(point);
+        //options.title(getCurrentAddress(point));
+        options.position(mFriend);
+        options.title(getCurrentAddress(mFriend));
+        options.snippet("위도: "+String.valueOf(mFriend.latitude)
+                + " 경도: "+String.valueOf(mFriend.longitude));
+        //options.snippet("위도: "+String.valueOf(location.getLatitude())
+        //       + " 경도: "+String.valueOf(location.getLongitude()));
+        /**
+         * For the start location, the color of marker is GREEN and
+         * for the end location, the color of marker is RED.
+         */
+        if(mMarkerPoints.size()==1){
+            options.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+        }else if(mMarkerPoints.size()==2){
+            options.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+        }
+        MarkerOptions optionss = new MarkerOptions();
+
+        // Setting the position of the marker
+        //options.position(point);
+        //options.title(getCurrentAddress(point));
+        middle = new LatLng((mFriend.latitude+mCurrentLocatiion.getLatitude())/2,(mFriend.longitude+mCurrentLocatiion.getLongitude())/2);
+        optionss.position(middle);
+        optionss.title(getCurrentAddress(middle));
+        optionss.snippet("위도: "+String.valueOf(middle.latitude)
+                + " 경도: "+String.valueOf(middle.longitude));
+        // Add new marker to the Google Map Android API V2
+        optionss.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+        mMap.addMarker(options);
+        mMap.addMarker(optionss);
+        // Checks, whether start and end locations are captured
+        // 수정했음 ★★★★★★★★★★★★★★★★★★★★★★★★ >=2
+        if(mMarkerPoints.size() >= 1){
+            //mOrigin = mMarkerPoints.get(0);
+            //mDestination = mMarkerPoints.get(1);
+            mOrigin = currentPosition;
+            mDestination = mMarkerPoints.get(0);
+            mDestination = middle;
+            drawRoute();
+            // 폴리라인 그릴 수 있으니 duration 정보 얻은 후인것임.
+            mTextView.setText(duration);
+            mTTextView.setText(distance);
+        }
+        if (previous_marker != null)
+            previous_marker.clear();//지역정보 마커 클리어
+        if(radioButton.isChecked()) {
+            new NRPlaces.Builder()
+                    .listener(PracticeJSONActivity.this)
+                    .key("AIzaSyChiRThHnDah6rVMNnwZYRmLopsouhKJlg")
+                    .latlng(middle.latitude, middle.longitude)//현재 위치
+                    .radius(200) //500 미터 내에서 검색
+                    .type(PlaceType.CAFE) //음식점
+                    .build()
+                    .execute();
+            Log.d("---Place---","카페");
+        }else{
+            new NRPlaces.Builder()
+                    .listener(PracticeJSONActivity.this)
+                    .key("AIzaSyChiRThHnDah6rVMNnwZYRmLopsouhKJlg")
+                    .latlng(middle.latitude, middle.longitude)//현재 위치
+                    .radius(300) //500 미터 내에서 검색
+                    .type(PlaceType.RESTAURANT) //음식점
+                    .build()
+                    .execute();
+
+            Log.d("---Place---","레스토랑");
+        }
+    }
+    @Override
+    public void onPlacesFailure(PlacesException e) {
+
+    }
+
+    @Override
+    public void onPlacesStart() {
+
+    }
+
+    @Override
+    public void onPlacesSuccess(final List<Place> places) {
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                for (noman.googleplaces.Place place : places) {
+
+                    LatLng latLng
+                            = new LatLng(place.getLatitude()
+                            , place.getLongitude());
+
+                    String markerSnippet = getCurrentAddress(latLng);
+
+                    MarkerOptions markerOptions = new MarkerOptions();
+                    markerOptions.position(latLng);
+                    markerOptions.title(place.getName());
+                    markerOptions.snippet(markerSnippet);
+                    Marker item = mMap.addMarker(markerOptions);
+                    previous_marker.add(item);
+
+                }
+
+                //중복 마커 제거
+                HashSet<Marker> hashSet = new HashSet<Marker>();
+                hashSet.addAll(previous_marker);
+                previous_marker.clear();
+                previous_marker.addAll(hashSet);
+
+            }
+        });
+
+    }
+
+    @Override
+    public void onPlacesFinished() {
+
+    }
 }

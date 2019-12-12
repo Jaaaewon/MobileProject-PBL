@@ -15,6 +15,7 @@ import java.util.List;
 public class PracticeJSONParser {
     /** Receives a JSONObject and returns a list of lists containing latitude and longitude */
     private String duration;
+    private String distance;
     public List<List<HashMap<String,String>>> parse(JSONObject jObject){
 
         List<List<HashMap<String, String>>> routes = new ArrayList<>() ;
@@ -58,17 +59,30 @@ public class PracticeJSONParser {
                 for (int j = 0; j < jLegs.length(); j++) {
                     String duration = (String) ((JSONObject) ((JSONObject) jLegs.get(j)).get("duration")).get("text");
                     if (duration != null) {
-                        Log.d("My Duration★★★", duration);
+                        Log.d("My duration★★★", duration);
                         this.duration = duration;
                     }
                 }
             }
+            for (int i = 0; i < jRoutes.length(); i++) {
+                jLegs = ((JSONObject) jRoutes.get(i)).getJSONArray("legs");
+                List path = new ArrayList<HashMap<String, String>>();
+                for (int j = 0; j < jLegs.length(); j++) {
+                    String distance = (String) ((JSONObject) ((JSONObject) jLegs.get(j)).get("distance")).get("text");
+                    if (distance != null) {
+                        Log.d("My distance★★★", distance);
+                        this.distance = distance;
+                    }
+                }
+            }
+
         } catch (JSONException e) {
             e.printStackTrace();
         }catch (Exception e){
         }
         return routes;
     }
+    public String getDistance() { return this.distance; }
     public String getDuration(){ return this.duration; }
     /**
      * Method to decode polyline points

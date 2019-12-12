@@ -25,23 +25,64 @@
         android:background="#FFFFFF"
         android:orientation="vertical" >
 
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="16dp"
-            android:text="Distance ?"
-            android:paddingTop="3dp"
-            android:paddingLeft="3dp"
-            android:paddingBottom="3dp"
-            android:id="@+id/txt_distance" />
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="17dp"
-            android:paddingLeft="3dp"
-            android:text="Duration ?"
-            android:id="@+id/txt_time" />
+            <LinearLayout
+                android:layout_width="182dp"
+                android:layout_height="match_parent"
+                android:layout_weight="2"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/txt_distance"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:paddingLeft="3dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:text="Distance ?"
+                    android:textSize="16dp" />
+
+                <TextView
+                    android:id="@+id/txt_time"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:paddingLeft="3dp"
+                    android:text="Duration ?"
+                    android:textSize="17dp" />
+            </LinearLayout>
+
+            <RadioGroup
+                android:id="@+id/radioGroup"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <RadioButton
+                    android:id="@+id/radioButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="cafe" />
+
+                <RadioButton
+                    android:id="@+id/radioButton2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="restaurent" />
+            </RadioGroup>
+
+            <Button
+                android:id="@+id/place"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Button" />
+
+        </LinearLayout>
 
     </LinearLayout>
 </LinearLayout>
